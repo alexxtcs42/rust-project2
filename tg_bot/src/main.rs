@@ -6,6 +6,7 @@ use std::fs;
 use rand::thread_rng;
 use rand::seq::SliceRandom;
 use tokio_compat::*;
+use async_recursion::async_recursion;
 // use futures::executor::block_on;
 // use tokio::runtime::Runtime;
 
@@ -16,12 +17,9 @@ use tokio_compat::*;
 //         .block_on(logic());
 // }
 
+#[async_recursion]
 #[tokio_compat::main]
 async fn main() {
-    logic().await
-}
-
-async fn logic() {
     let client = Client::new();
     let api_token = "6605998046:AAG-R7q6Y5LGyGmsWmkDwYvF8NwwPFDdk90";
     let mut offset = 0;
@@ -80,7 +78,7 @@ async fn logic() {
                             let _response = send_request(&client, &api_token, "sendMessage", &params);
                             count = 0;
                             score = 0;
-                            main()
+                            main().await
                         } else {
                             let mut params = HashMap::new();
                             let ci = &chat_id.to_string();
