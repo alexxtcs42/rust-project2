@@ -5,6 +5,7 @@ use reqwest::Client;
 use std::fs;
 use rand::thread_rng;
 use rand::seq::SliceRandom;
+use tokio_compat::*;
 // use futures::executor::block_on;
 // use tokio::runtime::Runtime;
 
@@ -15,7 +16,7 @@ use rand::seq::SliceRandom;
 //         .block_on(logic());
 // }
 
-#[tokio::main]
+#[tokio_compat::main]
 async fn main() {
     logic().await
 }
