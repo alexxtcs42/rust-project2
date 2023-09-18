@@ -5,44 +5,59 @@ use reqwest::Client;
 use std::fs;
 use rand::thread_rng;
 use rand::seq::SliceRandom;
-use tokio_compat::*;
+// use tokio_compat::*;
 use async_recursion::async_recursion;
 // use futures::executor::block_on;
-// use tokio::runtime::Runtime;
+use tokio::runtime::Runtime;
 
 
-// fn main() {
-//     Runtime::new()
-//         .expect("Failed to create Tokio runtime")
-//         .block_on(logic());
-// }
+// #[tokio::main]
+fn main() {
+    println!("main");
+    Runtime::new()
+        .expect("Failed to create Tokio runtime")
+        .block_on(logic());
+}
 
-#[async_recursion]
-#[tokio_compat::main]
-async fn main() {
+
+// #[async_recursion]
+async fn logic() {
+    println!("logic");
     let client = Client::new();
     let api_token = "6605998046:AAG-R7q6Y5LGyGmsWmkDwYvF8NwwPFDdk90";
     let mut offset = 0;
     let mut count = 0;
     let mut score = 0;
-    let d = fs::read_to_string(r"C:\Users\User\RustProject\rust_project\tg_bot\src\questions.txt").expect("Unable to read file");
+    let mut d = fs::read_to_string(r"C:\Users\User\RustProject\rust_project\tg_bot\src\questions.txt").expect("Unable to read file");
     let mut data: Vec<_> = vec![];
     loop {
         let mut params = HashMap::new();
+        let mut ps = HashMap::new();
         let of = &offset.to_string();
         params.insert("offset", of);
-        let one = &"1".to_string();
-        params.insert("timeout", one);
+        let n = &"803290642".to_string();
+        ps.insert("chat_id", n);
+        let timeout = &"1".to_string();
+        params.insert("timeout", timeout);
+        let sm = &"send message".to_string();
+        ps.insert("text", sm);
+        let re_sponse = send_request(&client, &api_token, "sendMessage", &ps);
         let response = send_request(&client, &api_token, "getUpdates", &params);
         if let Some(updates) = response.await["result"].as_array() {
-            for update in updates {
+            if updates.len() > 0 {
+                let update = &updates[updates.len() - 1];
+                println!("update: {:#?}", update);
+                // for update in updates {
                 offset = update["update_id"].as_u64().unwrap() + 1;
                 if let Some(message) = update["message"].as_object() {
                     let chat_id = message["chat"]["id"].as_i64().unwrap();
                     let text = message["text"].as_str().unwrap();
+                    println!("text: {}", text);
                     if text.starts_with("/") {
+                        println!("/");
                         let command = text[1..].split_whitespace().next().unwrap();
                         if command == "start" {
+                            // println!("start");
                             instruction(&client, chat_id);
                             count = 0;
                             score = 0;
@@ -78,7 +93,9 @@ async fn main() {
                             let _response = send_request(&client, &api_token, "sendMessage", &params);
                             count = 0;
                             score = 0;
-                            main().await
+                            offset = 0;
+                            d = fs::read_to_string(r"C:\Users\User\RustProject\rust_project\tg_bot\src\questions.txt").expect("Unable to read file");
+                            data = vec![];
                         } else {
                             let mut params = HashMap::new();
                             let ci = &chat_id.to_string();
@@ -88,17 +105,25 @@ async fn main() {
                             let _response = send_request(&client, &api_token, "sendMessage", &params);
                         }
                     } else {
-                        if text == data[count][6] {
+                        println!("not /");
+                        if data.len() <= count {
+                            continue;
+                        }
+                        else if text == data[count][6].trim() {
+                            println!("{:#?}", data[count]);
+                            println!("{}", data[count][6].trim());
+                            println!("right answer");
                             count += 1;
                             score += 1;
                             if count < 5 {
                                 let mut params = HashMap::new();
                                 let ci = &chat_id.to_string();
                                 params.insert("chat_id", ci);
-                                let params_text = &format!("{:#?}", &data[0][..6]);
+                                let params_text = &format!("{:#?}", &data[count][..6]);
                                 params.insert("text", params_text);
                                 let _response = send_request(&client, &api_token, "sendMessage", &params);
-                            } else {
+                            }
+                            else {
                                 let mut params = HashMap::new();
                                 let ci = &chat_id.to_string();
                                 params.insert("chat_id", ci);
@@ -108,14 +133,20 @@ async fn main() {
                                 let _response = send_request(&client, &api_token, "sendMessage", &params);
                                 count = 0;
                                 score = 0;
+                                offset = 0;
+                                d = fs::read_to_string(r"C:\Users\User\RustProject\rust_project\tg_bot\src\questions.txt").expect("Unable to read file");
+                                data = vec![];
                             }
-                        } else if (text.parse::<i32>().unwrap() < 5) & (text.parse::<i32>().unwrap() > 0) {
+                        } else if (text == "1") | (text == "2") | (text == "3") | (text == "4") {
+                            println!("{:#?}", data[count]);
+                            println!("{}", data[count][6].trim());
+                            println!("wrong answer");
                             count += 1;
                             if count < 5 {
                                 let mut params = HashMap::new();
                                 let ci = &chat_id.to_string();
                                 params.insert("chat_id", ci);
-                                let params_text = &format!("{:#?}", &data[0][..6]);
+                                let params_text = &format!("{:#?}", &data[count][..6]);
                                 params.insert("text", params_text);
                                 let _response = send_request(&client, &api_token, "sendMessage", &params);
                             } else {
@@ -128,8 +159,12 @@ async fn main() {
                                 let _response = send_request(&client, &api_token, "sendMessage", &params);
                                 count = 0;
                                 score = 0;
+                                offset = 0;
+                                d = fs::read_to_string(r"C:\Users\User\RustProject\rust_project\tg_bot\src\questions.txt").expect("Unable to read file");
+                                data = vec![];
                             }
                         } else {
+                            println!("wtf");
                             let mut params = HashMap::new();
                             let ci = &chat_id.to_string();
                             params.insert("chat_id", ci);
@@ -140,6 +175,9 @@ async fn main() {
                     }
                 }
             }
+            else {
+                continue;
+            }
         }
     }
 }
@@ -149,6 +187,7 @@ async fn send_request(
     api_token: &str,
     method: &str,
     params: &HashMap<&str, &std::string::String>) -> serde_json::Value{
+    println!("send request, {}", method);
     let mut url = String::new();
     url.push_str("https://api.telegram.org/bot");
     url.push_str(api_token);
@@ -157,10 +196,12 @@ async fn send_request(
 
     let mut _response_ = client.get(&url).query(params).send();
     let json_: serde_json::Value = _response_.await.unwrap().json().await.unwrap();
+    println!("json: {}", json_);
     json_
 }
 
 fn instruction(client: &Client, chat_id: i64) -> () {
+    println!("instruction");
     let api_token = "6605998046:AAG-R7q6Y5LGyGmsWmkDwYvF8NwwPFDdk90";
     let mut params = HashMap::new();
     let ci = chat_id.to_string();
@@ -168,4 +209,5 @@ fn instruction(client: &Client, chat_id: i64) -> () {
     params.insert("chat_id", &ci);
     params.insert("text", &instr);
     let _response = send_request(&client, &api_token, "sendMessage", &params);
+    println!("instruction sent");
 }
